@@ -50,6 +50,13 @@ npm run dev
 - **Tab 2:** Follower (👥), receives broadcasts from Tab 1
 - **Server:** Only 1 connection
 
+## Requirements for this challenge
+
+1. Still use `broadcast-channel` library for leader election
+2. Give up SSE connection when 0 subscribers - When last subscriber unsubscribes, close the connection
+3. Keep `subscribe` and `unsubscribe` interface.
+4. You are allowed to update other implementation detail of SubscriptionManager
+
 ## Project Structure
 
 ```

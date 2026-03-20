@@ -53,7 +53,7 @@ npm run dev
 ## Requirements for this challenge
 
 1. Still use `broadcast-channel` library for leader election
-2. Give up SSE connection when 0 subscribers - When last subscriber unsubscribes, close the connection
+2. Give up SSE connection when 0 subscribers - When last subscriber unsubscribes, close the connection, other tabs should able to take over.
 3. Keep `subscribe` and `unsubscribe` interface.
 4. You are allowed to update other implementation detail of SubscriptionManager
 

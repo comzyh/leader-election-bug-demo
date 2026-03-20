@@ -1,21 +1,46 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { getSubscriptionManager } from './subscriptionManager'
 
 function App() {
   const [messageCount, setMessageCount] = useState(0)
   const [isLeader, setIsLeader] = useState(false)
+  const [isSubscribed, setIsSubscribed] = useState(false)
   const [messages, setMessages] = useState<any[]>([])
+  const managerRef = useRef<ReturnType<typeof getSubscriptionManager> | null>(null)
+  const unsubscribeRef = useRef<(() => void) | null>(null)
+
+  const handleMessage = useCallback((data: any) => {
+    console.log('[App] Received message:', data);
+    setMessageCount(prev => prev + 1);
+    setMessages(prev => [...prev, data].slice(-5)); // Keep last 5 messages
+  }, []);
+
+  const subscribeToStream = useCallback(() => {
+    if (!managerRef.current || unsubscribeRef.current) {
+      return;
+    }
+
+    unsubscribeRef.current = managerRef.current.subscribe('http://localhost:8001/stream', handleMessage);
+    setIsSubscribed(true);
+  }, [handleMessage]);
+
+  const unsubscribeFromStream = useCallback(() => {
+    if (!unsubscribeRef.current) {
+      return;
+    }
+
+    unsubscribeRef.current();
+    unsubscribeRef.current = null;
+    setIsSubscribed(false);
+  }, []);
 
   useEffect(() => {
     console.log('[App] Component mounted, subscribing to SSE');
     const manager = getSubscriptionManager();
+    managerRef.current = manager;
 
-    // Subscribe to SSE updates
-    const unsubscribe = manager.subscribe('http://localhost:8001/stream', (data) => {
-      console.log('[App] Received message:', data);
-      setMessageCount(prev => prev + 1);
-      setMessages(prev => [...prev, data].slice(-5)); // Keep last 5 messages
-    });
+    // Keep existing default behavior: subscribe immediately on mount
+    subscribeToStream();
 
     // Subscribe to status changes
     const unsubscribeStatus = manager.onStatusChange((status) => {
@@ -25,9 +50,10 @@ function App() {
     return () => {
       console.log('[App] Component unmounting, unsubscribing');
       unsubscribeStatus();
-      unsubscribe();
+      unsubscribeFromStream();
+      managerRef.current = null;
     };
-  }, []);
+  }, [subscribeToStream, unsubscribeFromStream]);
 
   return (
     <div style={{ padding: '20px', fontFamily: 'monospace' }}>
@@ -36,7 +62,14 @@ function App() {
       <div style={{ marginTop: '20px', padding: '10px', border: '1px solid #ccc' }}>
         <h2>Status</h2>
         <p><strong>Role:</strong> {isLeader ? '👑 Leader' : '👥 Follower'}</p>
+        <p><strong>Subscribed:</strong> {isSubscribed ? 'Yes' : 'No'}</p>
         <p><strong>Messages Received:</strong> {messageCount}</p>
+        <button
+          onClick={isSubscribed ? unsubscribeFromStream : subscribeToStream}
+          style={{ marginTop: '10px', padding: '8px 12px', cursor: 'pointer' }}
+        >
+          {isSubscribed ? 'Unsubscribe' : 'Subscribe'}
+        </button>
       </div>
 
       <div style={{ marginTop: '20px', padding: '10px', border: '1px solid #ccc' }}>

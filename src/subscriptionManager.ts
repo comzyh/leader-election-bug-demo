@@ -36,7 +36,6 @@ class SubscriptionManager {
   private currentUrl: string | null = null;
   private myId: string = Math.random().toString(36).substring(2, 9);
   private leaderPingInterval: ReturnType<typeof setInterval> | null = null;
-  private followerCheckInterval: ReturnType<typeof setInterval> | null = null;
   private isDestroyed: boolean = false;
   private statusListeners: Set<StatusListener> = new Set();
 
@@ -134,11 +133,6 @@ class SubscriptionManager {
     this.elector.awaitLeadership().then(() => {
       console.log(`[SubscriptionManager] This tab (${this.myId}) is now the leader`);
 
-      if (this.followerCheckInterval) {
-        clearInterval(this.followerCheckInterval);
-        this.followerCheckInterval = null;
-      }
-
       if (this.currentUrl) {
         this.openEventSource(this.currentUrl);
       }
@@ -158,13 +152,6 @@ class SubscriptionManager {
 
       this.notifyStatusChange();
     });
-
-    // Follower health check
-    this.followerCheckInterval = setInterval(() => {
-      if (!this.elector.isLeader) {
-        console.log(`[SubscriptionManager] Follower check - still follower (tab ${this.myId})`);
-      }
-    }, 3000);
   }
 
   private exitElection() {
@@ -178,11 +165,6 @@ class SubscriptionManager {
     if (this.leaderPingInterval) {
       clearInterval(this.leaderPingInterval);
       this.leaderPingInterval = null;
-    }
-
-    if (this.followerCheckInterval) {
-      clearInterval(this.followerCheckInterval);
-      this.followerCheckInterval = null;
     }
 
     void this.elector.die().then(() => {
@@ -238,11 +220,6 @@ class SubscriptionManager {
     if (this.leaderPingInterval) {
       clearInterval(this.leaderPingInterval);
       this.leaderPingInterval = null;
-    }
-
-    if (this.followerCheckInterval) {
-      clearInterval(this.followerCheckInterval);
-      this.followerCheckInterval = null;
     }
 
     if (this.eventSource) {
